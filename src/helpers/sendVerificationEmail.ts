@@ -16,6 +16,13 @@ export async function sendVerificationEmail(
       react: VerificationEmail({ username, otp: verifyCode }),
     });
 
+    // await resend.emails.send({
+    //   from: "Acme <onboarding@resend.dev>",
+    //   to: [email],
+    //   subject: "hello world",
+    //   html: "<p>it works!</p>",
+    // });
+
     return {
       success: true,
       message: "Verification email sent successfully",
