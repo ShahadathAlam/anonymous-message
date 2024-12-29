@@ -1,6 +1,22 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## **Table of Contents**
+
+1. [Getting Started](#getting-started)
+2. [Handling Hot-Reload Errors with Mongoose in Development](#handling-hot-reload-errors-with-mongoose-in-development)
+   - [The Problem](#the-problem)
+   - [The Cause](#the-cause)
+   - [Steps Taken to Solve the Problem](#steps-taken-to-solve-the-problem)
+     - [Check if the Model Exists](#1-check-if-the-model-exists)
+     - [Use Conditional Model Initialization](#2-use-conditional-model-initialization)
+   - [Implementation Details](#implementation-details)
+   - [Future Improvements](#future-improvements)
+   - [Takeaway](#takeaway)
+3. [Debugging Insights: Proper Use of Status Codes](#debugging-insights-proper-use-of-status-codes)
+
+---
+
+## **Getting Started**
 
 First, run the development server:
 
@@ -16,22 +32,11 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-# Handling Hot-Reload Errors with Mongoose in Development
-
-## **Table of Contents**
-
-1. [The Problem](#the-problem)
-2. [The Cause](#the-cause)
-3. [Steps Taken to Solve the Problem](#steps-taken-to-solve-the-problem)
-   - [Check if the Model Exists](#1-check-if-the-model-exists)
-   - [Use Conditional Model Initialization](#2-use-conditional-model-initialization)
-4. [Implementation Details](#implementation-details)
-5. [Future Improvements](#future-improvements)
-6. [Takeaway](#takeaway)
-
 ---
 
-## **The Problem**
+## **Handling Hot-Reload Errors with Mongoose in Development**
+
+### **The Problem**
 
 When working with **Mongoose** in a development environment, especially with frameworks like **Next.js**, frequent hot reloads can cause an issue where the same Mongoose model is defined multiple times. This typically results in the following error:
 
@@ -43,7 +48,7 @@ This happens because Mongoose doesn't allow redefining models that already exist
 
 ---
 
-## **The Cause**
+### **The Cause**
 
 Next.js (or similar frameworks) uses a **hot-reloading feature** in development mode to restart the server whenever changes are made. However:
 
@@ -52,13 +57,13 @@ Next.js (or similar frameworks) uses a **hot-reloading feature** in development 
 
 ---
 
-## **Steps Taken to Solve the Problem**
+### **Steps Taken to Solve the Problem**
 
-### **1. Check if the Model Exists**
+#### **1. Check if the Model Exists**
 
 To handle this, we first check if the model already exists in `mongoose.models` before attempting to redefine it.
 
-### **2. Use Conditional Model Initialization**
+#### **2. Use Conditional Model Initialization**
 
 We modified our model definition code as follows:
 
@@ -80,7 +85,7 @@ This ensures the model is only defined once, even with hot-reloading.
 
 ---
 
-## **Implementation Details**
+### **Implementation Details**
 
 Here’s an example of the complete code for the `User` model:
 
@@ -131,7 +136,7 @@ export default UserModel;
 
 ---
 
-## **Future Improvements**
+### **Future Improvements**
 
 1. **Global Mongoose Connection Handling**:
 
@@ -143,8 +148,78 @@ export default UserModel;
 
 ---
 
-## **Takeaway**
+### **Takeaway**
 
 By checking if a model already exists in `mongoose.models` before defining it, we can avoid errors caused by model redefinition during hot-reloading. This is a critical step when developing with Next.js or similar frameworks that restart the server frequently.
+
+---
+
+## **Debugging Insights: Proper Use of Status Codes**
+
+While building the **username validation feature** for this project, I encountered a noteworthy issue related to HTTP status codes. Here's what happened and the lesson learned:
+
+### **The Issue**
+
+The backend was designed to return a JSON response indicating success or failure during username validation:
+
+- **Response Body**: `{"success": true, "message": "Username is Unique"}`
+- **Status Code**: `400` (Bad Request)
+
+Despite the success message, the `400` status code caused the frontend to misinterpret the response as an error, leading to unexpected behavior.
+
+---
+
+### **Root Cause**
+
+The mismatch between the **response body** and the **status code** was the root of the problem:
+
+- A status code of `400` signals a client-side error, which contradicted the success message in the response.
+
+---
+
+### **The Fix**
+
+To resolve this, I updated the backend logic to use proper HTTP status codes:
+
+- **200 (OK)**: For successful validation, when the username is unique.
+- **400 (Bad Request)**: For invalid input or when the username is already taken.
+- **500 (Internal Server Error)**: For server-side issues.
+
+This alignment made the frontend logic simpler and debugging more intuitive.
+
+---
+
+### **Key Takeaways**
+
+1. **Status Codes Matter**  
+   Status codes should accurately represent the intent of the response to avoid confusion and errors across the stack.
+
+2. **Clear Communication Between Backend and Frontend**  
+   Consistency in API responses ensures seamless integration and better debugging experiences.
+
+3. **Adhering to Standards**  
+   Following HTTP standards helps maintain clarity and simplifies collaboration within the team.
+
+---
+
+### **Code Update Example**
+
+Here's the updated snippet for proper status code handling:
+
+```typescript
+return Response.json(
+  {
+    success: true,
+    message: "Username is Unique",
+  },
+  { status: 200 }
+);
+```
+
+---
+
+### **Outcome**
+
+This small adjustment significantly improved the integration between the backend and frontend, saving time and reducing complexity in error handling.
 
 ---

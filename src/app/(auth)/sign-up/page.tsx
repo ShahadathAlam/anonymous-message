@@ -15,7 +15,6 @@ import { ApiResponse } from "@/types/ApiResponse";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -55,12 +54,9 @@ export default function Page() {
         setUsernameMessage("");
 
         try {
-          console.log(username);
           const response = await axios.get(
             `/api/check-username-unique?username=${username}`
           );
-
-          console.log(response.data.message);
 
           setUsernameMessage(response.data.message);
         } catch (error) {
