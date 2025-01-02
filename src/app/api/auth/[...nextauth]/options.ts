@@ -23,6 +23,8 @@ export const authOptions: NextAuthOptions = {
             $or: [
               {
                 email: credentials.identifier,
+              },
+              {
                 username: credentials.identifier,
               },
             ],
