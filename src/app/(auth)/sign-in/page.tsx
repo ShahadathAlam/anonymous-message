@@ -50,7 +50,10 @@ export default function Page() {
     }
 
     if (result?.url) {
+      console.log("Navigating to /dashboard");
       router.replace("/dashboard");
+    } else {
+      console.log("No URL returned, staying on current page");
     }
   };
   return (
