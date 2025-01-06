@@ -19,6 +19,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
    - [The Cause](#the-cause-1)
    - [Steps Taken to Solve the Problem](#steps-taken-to-solve-the-problem-1)
    - [Takeaway](#takeaway-1)
+6. [Fixing Window ReferenceError in Next.js](#fixing-window-referenceerror-in-nextjs)
 
 ---
 
@@ -304,3 +305,74 @@ The fix resolved the issue, and the aggregation pipeline returned the expected r
 - Understanding the difference between `_id` and custom fields like `id` can save hours of debugging.
 
 ---
+
+# Fixing Window ReferenceError in Next.js
+
+## Problem
+
+When building a Next.js application, an error occurs during server-side rendering (SSR) when trying to access the `window` object. The error message typically looks like:
+
+```
+ReferenceError: window is not defined
+```
+
+This error happens because the `window` object is part of the browser’s runtime environment and does not exist on the server, where SSR occurs.
+
+## Root Cause
+
+Next.js supports both SSR and client-side rendering (CSR). When a component or page uses the `window` object directly, Next.js attempts to render that code on the server during the initial rendering phase. Since the `window` object does not exist on the server, it results in a `ReferenceError`.
+
+In this specific case, the issue arose from trying to build a URL using `window.location` within a page marked with `"use client"`. While the `"use client"` directive enables CSR for the page, some parts of the page lifecycle might still trigger SSR initially, causing the error.
+
+## Solution
+
+To address the issue, ensure that any code relying on the `window` object is executed only in the browser runtime. This can be achieved by conditionally checking for the existence of the `window` object:
+
+```typescript
+const baseUrl =
+  typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.host}`
+    : "";
+```
+
+### Explanation
+
+1. `typeof window !== "undefined"`: This checks whether the `window` object is available before trying to access its properties.
+2. If `window` is defined, the `baseUrl` is constructed using `window.location.protocol` and `window.location.host`.
+3. If `window` is not defined (i.e., during SSR), the `baseUrl` is set to an empty string, ensuring no errors are thrown.
+
+## Steps to Implement the Fix
+
+1. Locate the code where the `window` object is accessed.
+2. Wrap the code in a conditional check, as shown above.
+3. Test the application to ensure both SSR and CSR work seamlessly.
+
+## Lessons Learned
+
+- Be cautious when using browser-specific objects like `window` or `document` in Next.js.
+- Understand the dual rendering nature of Next.js and write code that adapts to both SSR and CSR environments.
+- Use conditional checks to prevent SSR-related errors when accessing browser-only APIs.
+
+## Example Use Case
+
+Here’s the updated code snippet for generating a profile URL in a dashboard component:
+
+```typescript
+const baseUrl =
+  typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.host}`
+    : "";
+
+const profileUrl = `${baseUrl}/u/${username}`;
+
+const copyToClipboard = () => {
+  navigator.clipboard.writeText(profileUrl);
+  toast({
+    title: "Copied",
+    description: "Profile URL copied to clipboard",
+    variant: "default",
+  });
+};
+```
+
+By implementing this fix, the dashboard page renders correctly without errors during SSR and allows users to copy their profile URL seamlessly.

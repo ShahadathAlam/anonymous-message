@@ -75,6 +75,7 @@ export async function GET(request: Request) {
   //   const user = session?.user;
 
   if (!session || !session.user) {
+    console.error("No session or user found");
     return Response.json(
       {
         success: false,

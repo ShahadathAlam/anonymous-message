@@ -70,7 +70,7 @@ export default function Page() {
       try {
         const response = await axios.get<ApiResponse>("/api/get-messages");
 
-        console.log(response);
+        // console.log(response);
         setMessages(response.data.messages || []);
         if (refresh) {
           toast({
@@ -79,6 +79,7 @@ export default function Page() {
           });
         }
       } catch (error) {
+        console.log(error);
         const axiosError = error as AxiosError<ApiResponse>;
 
         toast({
@@ -135,7 +136,16 @@ export default function Page() {
 
   // TODO: do more research
 
-  const baseUrl = `${window.location.protocol}/${window.location.host}`;
+  // const baseUrl = `${window.location.protocol}/${window.location.host}`;
+
+  const baseUrl =
+    typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.host}`
+      : "";
+  // console.log(
+  //   "Running on:",
+  //   typeof window !== "undefined" ? "Client" : "Server"
+  // );
 
   const profileUrl = `${baseUrl}/u/${username}`;
 
