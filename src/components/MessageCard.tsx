@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 
 import {
@@ -81,7 +82,7 @@ export default function MessageCard({
         <CardDescription>Card Description</CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Card Content</p>
+        <p>{message}</p>
       </CardContent>
       <CardFooter>
         <p>Card Footer</p>

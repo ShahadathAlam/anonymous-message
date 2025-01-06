@@ -40,7 +40,7 @@ export default function Page() {
       identifier: data.identifier,
       password: data.password,
     });
-    console.log(result);
+    // console.log(result);
     if (result?.error) {
       toast({
         title: "Log In Failed",

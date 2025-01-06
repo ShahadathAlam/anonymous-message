@@ -14,6 +14,11 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
    - [Takeaway](#takeaway)
 3. [Debugging Insights: Proper Use of Status Codes](#debugging-insights-proper-use-of-status-codes)
 4. [Anonymous Message App: Middleware Bug and Fix](#anonymous-message-app-middleware-bug-and-fix)
+5. [Database Challenge: ObjectId Mismatch in Aggregation](#database-challenge-objectid-mismatch-in-aggregation)
+   - [The Problem](#the-problem-1)
+   - [The Cause](#the-cause-1)
+   - [Steps Taken to Solve the Problem](#steps-taken-to-solve-the-problem-1)
+   - [Takeaway](#takeaway-1)
 
 ---
 
@@ -227,11 +232,9 @@ This small adjustment significantly improved the integration between the backend
 
 ## **Anonymous Message App: Middleware Bug and Fix**
 
-During the development of my **Anonymous Message App**, I encountered a perplexing bug with `next-auth` middleware. This README documents the problem, why it occurred, and how I resolved it so others can avoid similar issues.
+### **The Problem**
 
-## The Problem
-
-When attempting to manage user authentication and redirections using `next-auth` middleware, I faced a **redirect loop** that resulted in the following error:
+During the development of my **Anonymous Message App**, I encountered a perplexing bug with `next-auth` middleware. The application entered a redirect loop that resulted in the following error:
 
 ```
 This page isn’t working
@@ -240,119 +243,64 @@ Try deleting your cookies.
 ERR_TOO_MANY_REDIRECTS
 ```
 
-### What Was Happening?
+### **The Cause**
 
-The application entered a redirect loop because the logic in my middleware inadvertently redirected users repeatedly without allowing the request to proceed to its intended route.
+The middleware's logic inadvertently redirected users repeatedly without allowing the request to proceed to its intended route. Broad route matching and insufficient logic to differentiate between public and private routes were the main culprits.
 
-For example:
+---
 
-- Authenticated users navigating to `/sign-in` or `/` would be redirected to `/dashboard`.
-- However, the same logic would apply to `/dashboard`, leading back to `/sign-in` if a token validation mismatch occurred.
+### **The Fix**
 
-## The Buggy Code
+By refining the middleware with explicit conditions and precise route checks, I resolved the issue. [Detailed implementation provided above.]
 
-Here is the problematic middleware code:
+---
 
-```typescript
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
-export { default } from "next-auth/middleware";
-import { getToken } from "next-auth/jwt";
+## **Database Challenge: ObjectId Mismatch in Aggregation**
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
-  const url = request.nextUrl;
+### **The Problem**
 
-  if (
-    token &&
-    (url.pathname.startsWith("/sign-in") ||
-      url.pathname.startsWith("/sign-up") ||
-      url.pathname.startsWith("/verify") ||
-      url.pathname.startsWith("/"))
-  ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+While implementing a MongoDB aggregation pipeline, I encountered an issue where the query using an `ObjectId` returned no results, even though the `ObjectId` appeared correct.
 
-  if (!token && url.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
-  }
+---
 
-  return NextResponse.next();
-}
-```
+### **The Cause**
 
-## Why Did the Bug Occur?
+The problem was due to using the field `id` in the `$match` stage instead of `_id`. In MongoDB, the primary key field is `_id`, and `id` does not refer to the same field. This mismatch caused the aggregation to fail.
 
-### Key Issues:
+---
 
-1. **Broad Route Matching:**
-   The middleware's logic used `url.pathname.startsWith`, which matched more paths than intended (e.g., `/` also matched `/dashboard`). This caused conflicting redirection rules.
+### **Steps Taken to Solve the Problem**
 
-2. **Infinite Redirect Loop:**
-   Authenticated users were constantly redirected to `/dashboard` even when they were already on `/dashboard`.
+1. **Diagnosis**:
 
-3. **No Explicit Stop Condition:**
-   The middleware lacked a condition to stop redirections once the user was correctly routed.
+   - Verified that the `ObjectId` was correct and matched the database document.
+   - Realized the issue stemmed from the wrong field name in the `$match` stage.
 
-## The Solution
-
-To resolve the issue, I refined the middleware logic to:
-
-1. Use precise path checks for specific routes.
-2. Prevent unnecessary redirections by explicitly allowing authenticated users to access their intended routes.
-
-### The Fixed Code
+2. **Fix**:
+   Updated the aggregation pipeline to correctly use `_id` instead of `id`:
 
 ```typescript
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+const userId = new mongoose.Types.ObjectId(user._id);
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
-  const url = request.nextUrl;
-
-  // Redirect authenticated users away from public routes
-  if (
-    token &&
-    (url.pathname === "/sign-in" ||
-      url.pathname === "/sign-up" ||
-      url.pathname === "/verify" ||
-      url.pathname === "/")
-  ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Redirect unauthenticated users trying to access private routes
-  if (!token && url.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
-  }
-
-  // Allow other requests to proceed
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: ["/sign-in", "/sign-up", "/", "/dashboard/:path*", "/verify/:path*"],
-};
+const user = await UserModel.aggregate([
+  { $match: { _id: userId } },
+  { $unwind: "$messages" },
+  { $sort: { "messages.createdAt": -1 } },
+  { $group: { _id: "$_id", messages: { $push: "$messages" } } },
+]);
 ```
 
-### Key Fixes:
+---
 
-1. **Precise Path Matching:**
-   - Used `url.pathname === "/sign-in"` instead of `url.pathname.startsWith("/sign-in")` to prevent overlapping matches.
-2. **Improved Route Logic:**
-   - Ensured authenticated users are redirected only from public routes (`/sign-in`, `/sign-up`, etc.) to `/dashboard`.
-   - Allowed authenticated users to access private routes like `/dashboard` without interference.
-3. **Preserved Unauthenticated Flow:**
-   - Allowed unauthenticated users to navigate public routes while redirecting them away from private ones.
+### **Outcome**
 
-## Conclusion
+The fix resolved the issue, and the aggregation pipeline returned the expected results. This highlights the importance of using correct field names when working with MongoDB queries.
 
-The redirect loop bug occurred because of overly broad path matching and insufficient logic to differentiate between public and private routes. By refining the middleware with explicit conditions and precise route checks, I resolved the issue.
+---
 
-This fix ensures a smoother authentication flow for users while maintaining secure access control.
+### **Takeaway**
 
-Feel free to use or adapt this solution in your Next.js applications! For further queries, reach out or explore more about `next-auth` middleware.
+- Always verify field names in queries, especially when using MongoDB's aggregation framework.
+- Understanding the difference between `_id` and custom fields like `id` can save hours of debugging.
 
 ---
