@@ -37,15 +37,16 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     };
 
+    // console.log(newMessage);
     user.messages.push(newMessage as Message);
     await user.save();
 
     return Response.json(
       {
-        success: false,
+        success: true,
         message: "message sent successfully",
       },
-      { status: 403 }
+      { status: 200 }
     );
   } catch (error) {
     console.error("Failed to send message", error);
