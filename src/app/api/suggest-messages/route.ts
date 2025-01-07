@@ -65,12 +65,6 @@ export async function POST(req: Request) {
   }
 }
 
-// This is OpenAi Keys
-
-// OPENAI_API_KEY="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"
-
-// OPENAI_API_KEY="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"
-
 //////////////////////////////// From Chatgpt /////////////////////////////
 // import OpenAI from "openai";
 // import { NextResponse } from "next/server";
