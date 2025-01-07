@@ -20,6 +20,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
    - [Steps Taken to Solve the Problem](#steps-taken-to-solve-the-problem-1)
    - [Takeaway](#takeaway-1)
 6. [Fixing Window ReferenceError in Next.js](#fixing-window-referenceerror-in-nextjs)
+7. [Handling params in Next.js: Resolving the Promise Warning](#handling-params-in-nextjs-resolving-the-promise-warning)
 
 ---
 
@@ -376,3 +377,197 @@ const copyToClipboard = () => {
 ```
 
 By implementing this fix, the dashboard page renders correctly without errors during SSR and allows users to copy their profile URL seamlessly.
+
+---
+
+# Handling params in Next.js: Resolving the Promise Warning
+
+## Introduction
+
+In Next.js, dynamic route parameters (`params`) are transitioning to be handled as asynchronous `Promises`. This change may result in a warning if you access `params` directly in your component.
+
+This guide explains why this warning occurs and how to resolve it by unwrapping the `params` Promise using `React.use()`.
+
+## The Warning
+
+When accessing `params` directly in a Next.js component, you might encounter the following warning:
+
+```
+
+A param property was accessed directly with `params.username`. `params` is now a Promise and should be unwrapped with `React.use()` before accessing properties of the underlying params object. In this version of Next.js direct access to param properties is still supported to facilitate migration but in a future version you will be required to unwrap `params` with `React.use()`.
+
+```
+
+## Why is This Happening?
+
+Next.js is moving toward treating dynamic route parameters as **Promises** to improve the way they are handled in server-side and static rendering. This change requires that you unwrap the `params` Promise before accessing its properties.
+
+## Solution: Using `React.use()` to Unwrap `params`
+
+To fix this issue and ensure your code remains compatible with future versions of Next.js, you need to **unwrap** the `params` Promise using `React.use()` in the `useEffect` hook.
+
+### Steps to Fix the Warning
+
+1. **Use `React.use()` to Unwrap the `params` Promise**:
+   Since `params` is now a `Promise`, you need to resolve it asynchronously before accessing its properties.
+
+2. **Handle Asynchronous Logic in `useEffect`**:
+   React components expect **synchronous** functions, so the asynchronous `params` should be handled **outside** of the render process in a `useEffect` hook.
+
+### Code Example
+
+Here’s the updated code for resolving the `params` Promise:
+
+```tsx
+"use client";
+
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
+import suggestions from "@/suggestions.json";
+
+type SuggestedMessage = {
+  id: string;
+  text: string;
+};
+
+export default function Page({ params }: { params: { username: string } }) {
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchParams = async () => {
+      // Using React.use() to unwrap params as Promise
+      const resolvedParams = await params;
+      setUsername(resolvedParams.username); // Set username after resolving the Promise
+    };
+
+    fetchParams(); // Fetch params asynchronously
+  }, [params]); // Re-run effect when params change
+
+  const [message, setMessage] = useState("");
+  const [suggestedMessages, setSuggestedMessages] =
+    useState<SuggestedMessage[]>(suggestions);
+  const { toast } = useToast();
+
+  const handleSendMessage = async () => {
+    try {
+      const response = await axios.post("/api/send-message", {
+        content: message,
+      });
+
+      toast({
+        title: "Success",
+        description: response.data.message,
+      });
+
+      setMessage(""); // Clear the form after sending
+    } catch (error) {
+      console.error("Error sending message", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSuggestMessages = async () => {
+    try {
+      const response = await axios.post("/api/suggest-messages");
+      console.log(response);
+    } catch (error) {
+      console.error("Error fetching suggestions", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch suggestions. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSelectSuggestedMessage = (text: string) => {
+    setMessage(text);
+  };
+
+  // Render a loading state if username is not available
+  if (!username) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
+      <div className="w-full max-w-2xl bg-white p-6 shadow-lg rounded-lg">
+        <h1 className="text-3xl font-bold mb-4">
+          Send a Message to {username}
+        </h1>
+        <div className="mb-4">
+          <Textarea
+            placeholder="Write your message here..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <Button onClick={handleSendMessage} className="w-full mb-4">
+          Send Message
+        </Button>
+
+        <Button
+          onClick={handleSuggestMessages}
+          variant="outline"
+          className="w-full"
+        >
+          Suggest Messages
+        </Button>
+
+        {suggestedMessages.length > 0 && (
+          <div className="mt-4">
+            <h2 className="text-xl font-semibold mb-2">
+              Click on any message below to select it
+            </h2>
+            <ul className="space-y-2">
+              {suggestedMessages.map((suggestion) => (
+                <li
+                  key={suggestion.id}
+                  className="cursor-pointer p-2 border rounded hover:bg-gray-100"
+                  onClick={() => handleSelectSuggestedMessage(suggestion.text)}
+                >
+                  {suggestion.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+## Explanation
+
+1. **Unwrapping `params` with `React.use()`**:
+   We use `useEffect` to asynchronously resolve the `params` Promise and set the `username` state once it's available.
+
+2. **Rendering the Component**:
+   After resolving the `username`, we render the component with the correct username.
+
+3. **Loading State**:
+   If the username hasn't been set yet, we show a loading state until the asynchronous operation completes.
+
+## Why This Works
+
+- **React’s Synchronous Rendering**: React components are designed to be synchronous. Handling asynchronous logic inside `useEffect` keeps the render cycle intact and predictable.
+- **Future-Proofing**: By adapting to the new behavior of `params` as a Promise, your code will be ready for the future of Next.js, where this pattern is the expected way to handle dynamic route parameters.
+
+## Conclusion
+
+Next.js' transition to handling dynamic parameters as `Promises` requires developers to adjust their code to avoid warnings and ensure compatibility with future versions. By using `React.use()` inside `useEffect` to unwrap the `params` Promise, you can resolve the issue while adhering to modern best practices.
+
+With this fix, you’ll have a more reliable and maintainable Next.js project, and you’ll be well-prepared for upcoming releases.
+
+---
