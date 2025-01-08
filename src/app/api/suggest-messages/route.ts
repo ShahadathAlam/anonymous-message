@@ -1,4 +1,5 @@
 // This is from documentation
+
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
