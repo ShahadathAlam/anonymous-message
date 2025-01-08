@@ -59,7 +59,7 @@ export async function POST() {
       {
         success: false,
         message: "Failed to fetch suggestions.",
-        error: error.message || "Unknown error occurred.",
+        error: "Unknown error occurred.",
       },
       { status: 500 }
     );

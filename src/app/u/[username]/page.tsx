@@ -16,7 +16,11 @@ type SuggestedMessage = {
   text: string;
 };
 
-export default function Page({ params }: { params: { username: string } }) {
+// export default function Page({ params }: { params: { username: string } }) {
+export default function Page(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { params }: any // Temporarily set `params` to `any`
+) {
   const [username, setUsername] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
