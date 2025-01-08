@@ -1,5 +1,5 @@
 "use client";
-import { useCompletion } from "ai/react";
+// import { useCompletion } from "ai/react";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -11,20 +11,20 @@ import suggestions from "@/suggestions.json";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
-// type SuggestedMessage = {
-//   id: string;
-//   text: string;
-// };
+type SuggestedMessage = {
+  id: string;
+  text: string;
+};
 
 export default function Page({ params }: { params: { username: string } }) {
   const [username, setUsername] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // const [aiIsLoading, setAiIsLoading] = useState(false);
+  const [aiIsLoading, setAiIsLoading] = useState(false);
   const [message, setMessage] = useState("");
-  // const [suggestedMessages, setSuggestedMessages] =
-  //   useState<SuggestedMessage[]>(suggestions);
+  const [suggestedMessages, setSuggestedMessages] =
+    useState<SuggestedMessage[]>(suggestions);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,34 +76,34 @@ export default function Page({ params }: { params: { username: string } }) {
     }
   };
 
-  // Using `useCompletion` hook to generate suggestions
-  const {
-    complete,
-    completion,
-    isLoading: aiIsLoading,
-  } = useCompletion({
-    api: "/api/suggest-messages", // Endpoint for generating suggestions
-    onError: (error) => {
-      console.error("Error fetching AI suggestions", error);
+  // // Using `useCompletion` hook to generate suggestions
+  // const {
+  //   complete,
+  //   completion,
+  //   isLoading: aiIsLoading,
+  // } = useCompletion({
+  //   api: "/api/suggest-messages", // Endpoint for generating suggestions
+  //   onError: (error) => {
+  //     console.error("Error fetching AI suggestions", error);
 
-      toast({
-        title: "Error",
-        description: "Failed to fetch suggestions. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to fetch suggestions. Please try again.",
+  //       variant: "destructive",
+  //     });
+  //   },
+  // });
 
-  const handleSuggestMessages = () => {
-    complete(""); // Trigger the useCompletion hook
-  };
+  // const handleSuggestMessages = () => {
+  //   complete(""); // Trigger the useCompletion hook
+  // };
 
-  // Split the suggestions string into a list
-  const suggestedMessages = completion
-    ? completion
-        .split("||")
-        .map((text, index) => ({ id: index.toString(), text: text.trim() }))
-    : suggestions;
+  // // Split the suggestions string into a list
+  // const suggestedMessages = completion
+  //   ? completion
+  //       .split("||")
+  //       .map((text, index) => ({ id: index.toString(), text: text.trim() }))
+  //   : suggestions;
 
   // const handleSuggestMessages = async () => {
   //   try {
@@ -157,42 +157,42 @@ export default function Page({ params }: { params: { username: string } }) {
   //   }
   // };
 
-  // const handleSuggestMessages = async () => {
-  //   setAiIsLoading(true);
-  //   try {
-  //     const response = await axios.post("/api/suggest-messages");
-  //     const { data } = response;
+  const handleSuggestMessages = async () => {
+    setAiIsLoading(true);
+    try {
+      const response = await axios.post("/api/suggest-messages");
+      const { data } = response;
 
-  //     if (data.success) {
-  //       setSuggestedMessages(
-  //         data.suggestions.map((text: string, index: number) => ({
-  //           id: index.toString(),
-  //           text,
-  //         }))
-  //       );
-  //     } else {
-  //       throw new Error(data.message || "Unknown error");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching AI suggestions", error);
+      if (data.success) {
+        setSuggestedMessages(
+          data.suggestions.map((text: string, index: number) => ({
+            id: index.toString(),
+            text,
+          }))
+        );
+      } else {
+        throw new Error(data.message || "Unknown error");
+      }
+    } catch (error) {
+      console.error("Error fetching AI suggestions", error);
 
-  //     if (axios.isAxiosError(error) && error.response?.status === 429) {
-  //       toast({
-  //         title: "Quota Exceeded",
-  //         description: "OpenAI quota exceeded. Please try again later.",
-  //         variant: "destructive",
-  //       });
-  //     } else {
-  //       toast({
-  //         title: "Error",
-  //         description: "Failed to fetch suggestions. Please try again.",
-  //         variant: "destructive",
-  //       });
-  //     }
-  //   } finally {
-  //     setAiIsLoading(false);
-  //   }
-  // };
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        toast({
+          title: "Quota Exceeded",
+          description: "OpenAI quota exceeded. Please try again later.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch suggestions. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setAiIsLoading(false);
+    }
+  };
 
   const handleSelectSuggestedMessage = (text: string) => {
     setMessage(text);
